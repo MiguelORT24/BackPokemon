@@ -16,6 +16,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Item> Items => Set<Item>();
     public DbSet<ItemUser> ItemUsers => Set<ItemUser>();
     public DbSet<PokemonEstado> PokemonEstados => Set<PokemonEstado>();
+    public DbSet<PokemonCrianza> PokemonCrianzas => Set<PokemonCrianza>();
     public DbSet<Intercambio> Intercambios => Set<Intercambio>();
     public DbSet<Batalla> Batallas => Set<Batalla>();
 
@@ -41,6 +42,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(estado => estado.PokemonUser)
                 .WithOne(pokemonUser => pokemonUser.EstadoDetalle)
                 .HasForeignKey<PokemonEstado>(estado => estado.IdPokemonUser)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PokemonCrianza>(entity =>
+        {
+            entity.HasKey(crianza => crianza.Id);
+
+            entity.HasIndex(crianza => crianza.IdPokemonUser)
+                .IsUnique();
+
+            entity.HasOne(crianza => crianza.PokemonUser)
+                .WithOne(pokemonUser => pokemonUser.Crianza)
+                .HasForeignKey<PokemonCrianza>(crianza => crianza.IdPokemonUser)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -102,11 +116,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasOne(batalla => batalla.PokemonUserRetador)
                 .WithMany(pokemonUser => pokemonUser.BatallasComoRetador)
                 .HasForeignKey(batalla => batalla.PokemonUserR)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(batalla => batalla.PokemonUserContrincante)
-                .WithMany(pokemonUser => pokemonUser.BatallasComoContrincante)
-                .HasForeignKey(batalla => batalla.PokemonUserC)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(batalla => batalla.PokemonUserGanadorNavigation)

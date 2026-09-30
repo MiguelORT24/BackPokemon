@@ -8,6 +8,13 @@ public class ItemUserDto
     public int IdItem { get; set; }
     public string IdUser { get; set; } = null!;
     public int Cantidad { get; set; }
+    public ItemDto? Item { get; set; }
+}
+
+public class UpdateCantidadItemDto
+{
+    [Range(0, int.MaxValue)]
+    public int Cantidad { get; set; }
 }
 
 public class AssignItemDto

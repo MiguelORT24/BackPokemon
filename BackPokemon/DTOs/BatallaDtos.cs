@@ -6,7 +6,7 @@ public class BatallaDto
 {
     public int Id { get; set; }
     public int PokemonUserR { get; set; }
-    public int PokemonUserC { get; set; }
+    public int IdPokemonRival { get; set; }
     public DateTime Fecha { get; set; }
     public int PokemonUserGanador { get; set; }
 }
@@ -17,7 +17,7 @@ public class CreateBatallaDto
     public int PokemonUserR { get; set; }
 
     [Required]
-    public int PokemonUserC { get; set; }
+    public int IdPokemonRival { get; set; }
 
     [Required]
     public DateTime Fecha { get; set; }
@@ -32,7 +32,7 @@ public class UpdateBatallaDto
     public int PokemonUserR { get; set; }
 
     [Required]
-    public int PokemonUserC { get; set; }
+    public int IdPokemonRival { get; set; }
 
     [Required]
     public DateTime Fecha { get; set; }

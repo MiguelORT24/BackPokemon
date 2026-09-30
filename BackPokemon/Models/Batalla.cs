@@ -13,7 +13,7 @@ public class Batalla
     public int PokemonUserR { get; set; }
 
     [Required]
-    public int PokemonUserC { get; set; }
+    public int IdPokemonRival { get; set; }
 
     [Required]
     public DateTime Fecha { get; set; }
@@ -22,6 +22,5 @@ public class Batalla
     public int PokemonUserGanador { get; set; }
 
     public PokemonUser PokemonUserRetador { get; set; } = null!;
-    public PokemonUser PokemonUserContrincante { get; set; } = null!;
     public PokemonUser PokemonUserGanadorNavigation { get; set; } = null!;
 }

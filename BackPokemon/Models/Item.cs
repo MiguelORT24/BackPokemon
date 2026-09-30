@@ -24,5 +24,12 @@ public class Item
     [MaxLength(1000)]
     public string Descripcion { get; set; } = null!;
 
+    [Required]
+    [MaxLength(100)]
+    public string Efecto { get; set; } = string.Empty;
+
+    [Required]
+    public int Valor { get; set; }
+
     public ICollection<ItemUser> ItemUsers { get; set; } = new List<ItemUser>();
 }

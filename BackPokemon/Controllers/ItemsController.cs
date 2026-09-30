@@ -8,6 +8,7 @@ namespace BackPokemon.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/Item")]
 public class ItemsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -48,7 +49,9 @@ public class ItemsController : ControllerBase
             Nombre = request.Nombre,
             Probabilidad = request.Probabilidad,
             UrlImagen = request.UrlImagen,
-            Descripcion = request.Descripcion
+            Descripcion = request.Descripcion,
+            Efecto = request.Efecto,
+            Valor = request.Valor
         };
 
         _context.Items.Add(item);
@@ -76,6 +79,8 @@ public class ItemsController : ControllerBase
         item.Probabilidad = request.Probabilidad;
         item.UrlImagen = request.UrlImagen;
         item.Descripcion = request.Descripcion;
+        item.Efecto = request.Efecto;
+        item.Valor = request.Valor;
         await _context.SaveChangesAsync(cancellationToken);
 
         return NoContent();
@@ -109,6 +114,8 @@ public class ItemsController : ControllerBase
         Nombre = item.Nombre,
         Probabilidad = item.Probabilidad,
         UrlImagen = item.UrlImagen,
-        Descripcion = item.Descripcion
+        Descripcion = item.Descripcion,
+        Efecto = item.Efecto,
+        Valor = item.Valor
     };
 }

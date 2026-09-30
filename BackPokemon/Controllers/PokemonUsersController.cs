@@ -8,6 +8,7 @@ namespace BackPokemon.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/PokemonUser")]
 public class PokemonUsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -38,6 +39,41 @@ public class PokemonUsersController : ControllerBase
         return pokemonUser is null ? NotFound() : Ok(ToDto(pokemonUser));
     }
 
+    [HttpGet("usuario/{userId}")]
+    public async Task<ActionResult<IEnumerable<PokemonUserConEstadoDto>>> GetByUsuario(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var pokemonUsers = await _context.PokemonUsers
+            .AsNoTracking()
+            .Where(pokemonUser => pokemonUser.IdUsuario == userId)
+            .Select(pokemonUser => new PokemonUserConEstadoDto
+            {
+                Id = pokemonUser.Id,
+                IdPokemon = pokemonUser.IdPokemon,
+                IdUsuario = pokemonUser.IdUsuario,
+                Nombre = pokemonUser.Nombre,
+                PokemonEstado = pokemonUser.EstadoDetalle == null
+                    ? null
+                    : new PokemonEstadoDto
+                    {
+                        VidaTotal = pokemonUser.EstadoDetalle.VidaTotal,
+                        VidaActual = pokemonUser.EstadoDetalle.VidaActual,
+                        Estado = pokemonUser.EstadoDetalle.Estado,
+                        AtaqueBase = pokemonUser.EstadoDetalle.AtaqueBase,
+                        DefensaBase = pokemonUser.EstadoDetalle.DefensaBase,
+                        VelocidadBase = pokemonUser.EstadoDetalle.VelocidadBase,
+                        TipoPrimario = pokemonUser.EstadoDetalle.TipoPrimario,
+                        TipoSecundario = pokemonUser.EstadoDetalle.TipoSecundario,
+                        UrlFrontal = pokemonUser.EstadoDetalle.UrlFrontal,
+                        UrlTrasera = pokemonUser.EstadoDetalle.UrlTrasera
+                    }
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(pokemonUsers);
+    }
+
     [HttpPost]
     public async Task<ActionResult<PokemonUserDto>> Create(
         CreatePokemonUserDto request,
@@ -52,7 +88,8 @@ public class PokemonUsersController : ControllerBase
         var pokemonUser = new PokemonUser
         {
             IdPokemon = request.IdPokemon,
-            IdUsuario = request.IdUsuario
+            IdUsuario = request.IdUsuario,
+            Nombre = request.Nombre
         };
 
         _context.PokemonUsers.Add(pokemonUser);
@@ -84,6 +121,7 @@ public class PokemonUsersController : ControllerBase
 
         pokemonUser.IdPokemon = request.IdPokemon;
         pokemonUser.IdUsuario = request.IdUsuario;
+        pokemonUser.Nombre = request.Nombre;
         await _context.SaveChangesAsync(cancellationToken);
 
         return NoContent();
@@ -110,6 +148,7 @@ public class PokemonUsersController : ControllerBase
     {
         Id = pokemonUser.Id,
         IdPokemon = pokemonUser.IdPokemon,
-        IdUsuario = pokemonUser.IdUsuario
+        IdUsuario = pokemonUser.IdUsuario,
+        Nombre = pokemonUser.Nombre
     };
 }

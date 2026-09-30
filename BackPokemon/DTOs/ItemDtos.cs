@@ -9,6 +9,8 @@ public class ItemDto
     public float Probabilidad { get; set; }
     public string UrlImagen { get; set; } = null!;
     public string Descripcion { get; set; } = null!;
+    public string Efecto { get; set; } = null!;
+    public int Valor { get; set; }
 }
 
 public class CreateItemDto
@@ -27,6 +29,13 @@ public class CreateItemDto
     [Required]
     [MaxLength(1000)]
     public string Descripcion { get; set; } = null!;
+
+    [Required]
+    [MaxLength(100)]
+    public string Efecto { get; set; } = null!;
+
+    [Range(0, int.MaxValue)]
+    public int Valor { get; set; }
 }
 
 public class UpdateItemDto
@@ -45,4 +54,11 @@ public class UpdateItemDto
     [Required]
     [MaxLength(1000)]
     public string Descripcion { get; set; } = null!;
+
+    [Required]
+    [MaxLength(100)]
+    public string Efecto { get; set; } = null!;
+
+    [Range(0, int.MaxValue)]
+    public int Valor { get; set; }
 }

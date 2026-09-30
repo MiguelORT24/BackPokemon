@@ -17,8 +17,13 @@ public class PokemonEstado
     public int VidaActual { get; set; }
 
     [Required]
-    [MaxLength(50)]
-    public string Estado { get; set; } = null!;
+    public EstadoPokemon Estado { get; set; } = EstadoPokemon.Sano;
+
+    [Required]
+    public int TurnosEstado { get; set; } // para temporales de estados
+
+    [Required]
+    public int DuracionEstado { get; set; } // para temporales de estados 
 
     [Required]
     public int IdPokeball { get; set; }
@@ -48,4 +53,15 @@ public class PokemonEstado
     public string UrlTrasera { get; set; } = null!;
 
     public PokemonUser PokemonUser { get; set; } = null!;
+}
+
+public enum EstadoPokemon
+{
+    Sano = 1,
+    Dormido = 2,
+    Quemado = 3,
+    Envenenado = 4,
+    Paralizado = 5,
+    Confundido = 6,
+    Congelado = 7
 }

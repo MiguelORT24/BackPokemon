@@ -8,6 +8,7 @@ namespace BackPokemon.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/ItemUser")]
 public class InventarioController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -32,10 +33,26 @@ public class InventarioController : ControllerBase
     public async Task<ActionResult<ItemUserDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var itemUser = await _context.ItemUsers
+            .Include(item => item.Item)
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
 
         return itemUser is null ? NotFound() : Ok(ToDto(itemUser));
+    }
+
+    [HttpGet("usuario/{userId}")]
+    public async Task<ActionResult<IEnumerable<ItemUserDto>>> GetByUsuario(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var inventory = await _context.ItemUsers
+            .AsNoTracking()
+            .Include(itemUser => itemUser.Item)
+            .Where(itemUser => itemUser.IdUser == userId)
+            .Select(itemUser => ToDto(itemUser))
+            .ToListAsync(cancellationToken);
+
+        return Ok(inventory);
     }
 
     [HttpPost]
@@ -58,21 +75,29 @@ public class InventarioController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        if (await _context.ItemUsers.AnyAsync(
-                itemUser => itemUser.IdItem == request.IdItem && itemUser.IdUser == request.IdUser,
-                cancellationToken))
+        var itemUser = await _context.ItemUsers
+            .Include(item => item.Item)
+            .FirstOrDefaultAsync(
+                item => item.IdItem == request.IdItem
+                    && item.IdUser == request.IdUser,
+                cancellationToken);
+
+        if (itemUser is null)
         {
-            return Conflict("El ítem ya está asignado a este usuario.");
+            itemUser = new ItemUser
+            {
+                IdItem = request.IdItem,
+                IdUser = request.IdUser,
+                Cantidad = request.Cantidad
+            };
+
+            _context.ItemUsers.Add(itemUser);
+        }
+        else
+        {
+            itemUser.Cantidad += request.Cantidad;
         }
 
-        var itemUser = new ItemUser
-        {
-            IdItem = request.IdItem,
-            IdUser = request.IdUser,
-            Cantidad = request.Cantidad
-        };
-
-        _context.ItemUsers.Add(itemUser);
         await _context.SaveChangesAsync(cancellationToken);
 
         var response = ToDto(itemUser);
@@ -82,7 +107,7 @@ public class InventarioController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(
         int id,
-        UpdateItemUserDto request,
+        UpdateCantidadItemDto request,
         CancellationToken cancellationToken)
     {
         var itemUser = await _context.ItemUsers
@@ -93,30 +118,6 @@ public class InventarioController : ControllerBase
             return NotFound();
         }
 
-        if (!await _context.Items.AnyAsync(item => item.Id == request.IdItem, cancellationToken))
-        {
-            ModelState.AddModelError(nameof(request.IdItem), "El ítem indicado no existe.");
-        }
-
-        if (!await _context.Users.AnyAsync(user => user.Id == request.IdUser, cancellationToken))
-        {
-            ModelState.AddModelError(nameof(request.IdUser), "El usuario indicado no existe.");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        if (await _context.ItemUsers.AnyAsync(
-                item => item.Id != id && item.IdItem == request.IdItem && item.IdUser == request.IdUser,
-                cancellationToken))
-        {
-            return Conflict("El ítem ya está asignado a este usuario.");
-        }
-
-        itemUser.IdItem = request.IdItem;
-        itemUser.IdUser = request.IdUser;
         itemUser.Cantidad = request.Cantidad;
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -145,6 +146,16 @@ public class InventarioController : ControllerBase
         Id = itemUser.Id,
         IdItem = itemUser.IdItem,
         IdUser = itemUser.IdUser,
-        Cantidad = itemUser.Cantidad
+        Cantidad = itemUser.Cantidad,
+        Item = itemUser.Item is null ? null : new ItemDto
+        {
+            Id = itemUser.Item.Id,
+            Nombre = itemUser.Item.Nombre,
+            Probabilidad = itemUser.Item.Probabilidad,
+            UrlImagen = itemUser.Item.UrlImagen,
+            Descripcion = itemUser.Item.Descripcion,
+            Efecto = itemUser.Item.Efecto,
+            Valor = itemUser.Item.Valor
+        }
     };
 }

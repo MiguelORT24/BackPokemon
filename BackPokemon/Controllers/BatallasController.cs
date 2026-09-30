@@ -38,6 +38,20 @@ public class BatallasController : ControllerBase
         return batalla is null ? NotFound() : Ok(ToDto(batalla));
     }
 
+    [HttpGet("usuario/{userId}")]
+    public async Task<ActionResult<IEnumerable<BatallaDto>>> GetByUsuario(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        var battles = await _context.Batallas
+            .AsNoTracking()
+            .Where(batalla => batalla.PokemonUserRetador.IdUsuario == userId)
+            .Select(batalla => ToDto(batalla))
+            .ToListAsync(cancellationToken);
+
+        return Ok(battles);
+    }
+
     [HttpPost]
     public async Task<ActionResult<BatallaDto>> Create(
         CreateBatallaDto request,
@@ -51,7 +65,7 @@ public class BatallasController : ControllerBase
         var batalla = new Batalla
         {
             PokemonUserR = request.PokemonUserR,
-            PokemonUserC = request.PokemonUserC,
+            IdPokemonRival = request.IdPokemonRival,
             Fecha = request.Fecha,
             PokemonUserGanador = request.PokemonUserGanador
         };
@@ -83,7 +97,7 @@ public class BatallasController : ControllerBase
         }
 
         batalla.PokemonUserR = request.PokemonUserR;
-        batalla.PokemonUserC = request.PokemonUserC;
+        batalla.IdPokemonRival = request.IdPokemonRival;
         batalla.Fecha = request.Fecha;
         batalla.PokemonUserGanador = request.PokemonUserGanador;
         await _context.SaveChangesAsync(cancellationToken);
@@ -112,7 +126,7 @@ public class BatallasController : ControllerBase
         CreateBatallaDto request,
         CancellationToken cancellationToken)
     {
-        var ids = new[] { request.PokemonUserR, request.PokemonUserC, request.PokemonUserGanador };
+        var ids = new[] { request.PokemonUserR, request.PokemonUserGanador };
         var requiredCount = ids.Distinct().Count();
 
         var existingCount = await _context.PokemonUsers
@@ -128,7 +142,7 @@ public class BatallasController : ControllerBase
         UpdateBatallaDto request,
         CancellationToken cancellationToken)
     {
-        var ids = new[] { request.PokemonUserR, request.PokemonUserC, request.PokemonUserGanador };
+        var ids = new[] { request.PokemonUserR, request.PokemonUserGanador };
         var requiredCount = ids.Distinct().Count();
 
         var existingCount = await _context.PokemonUsers
@@ -144,7 +158,7 @@ public class BatallasController : ControllerBase
     {
         Id = batalla.Id,
         PokemonUserR = batalla.PokemonUserR,
-        PokemonUserC = batalla.PokemonUserC,
+        IdPokemonRival = batalla.IdPokemonRival,
         Fecha = batalla.Fecha,
         PokemonUserGanador = batalla.PokemonUserGanador
     };

@@ -1,5 +1,6 @@
 using BackPokemon.Data;
 using BackPokemon.Models;
+using BackPokemon.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -14,6 +15,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddIdentityCore<ApplicationUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddScoped<EfectosEstadoService>();
+builder.Services.AddScoped<TamagotchiService>();
+
+builder.Services.AddHttpClient("PokeApi", client =>
+{
+    client.BaseAddress = new Uri("https://pokeapi.co/api/v2/");
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
