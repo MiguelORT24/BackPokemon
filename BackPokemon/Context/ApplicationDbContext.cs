@@ -97,6 +97,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Intercambio>(entity =>
         {
             entity.HasKey(intercambio => intercambio.Id);
+            entity.HasOne(t => t.UsuarioCreador).WithMany()
+                .HasForeignKey(t => t.UsuarioCreadorId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(t => t.UsuarioDestinatario).WithMany()
+                .HasForeignKey(t => t.UsuarioDestinatarioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(t => new { t.Estado, t.PokemonUserR });
+            entity.HasIndex(t => new { t.Estado, t.PokemonUserD });
 
             entity.HasOne(intercambio => intercambio.PokemonUserRemitente)
                 .WithMany(pokemonUser => pokemonUser.IntercambiosComoRemitente)

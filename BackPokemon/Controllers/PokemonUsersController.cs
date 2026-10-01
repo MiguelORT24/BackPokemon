@@ -3,14 +3,18 @@ using BackPokemon.DTOs;
 using BackPokemon.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BackPokemon.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 [Route("api/PokemonUser")]
 public class PokemonUsersController : ControllerBase
 {
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
     private readonly ApplicationDbContext _context;
 
     public PokemonUsersController(ApplicationDbContext context)
@@ -23,6 +27,7 @@ public class PokemonUsersController : ControllerBase
     {
         var pokemonUsers = await _context.PokemonUsers
             .AsNoTracking()
+            .Where(p => p.IdUsuario == CurrentUserId)
             .Select(pokemonUser => ToDto(pokemonUser))
             .ToListAsync(cancellationToken);
 
@@ -34,7 +39,7 @@ public class PokemonUsersController : ControllerBase
     {
         var pokemonUser = await _context.PokemonUsers
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(item => item.Id == id && item.IdUsuario == CurrentUserId, cancellationToken);
 
         return pokemonUser is null ? NotFound() : Ok(ToDto(pokemonUser));
     }
@@ -44,6 +49,7 @@ public class PokemonUsersController : ControllerBase
         string userId,
         CancellationToken cancellationToken)
     {
+        if (userId != CurrentUserId) return NotFound();
         var pokemonUsers = await _context.PokemonUsers
             .AsNoTracking()
             .Where(pokemonUser => pokemonUser.IdUsuario == userId)
@@ -79,6 +85,8 @@ public class PokemonUsersController : ControllerBase
         CreatePokemonUserDto request,
         CancellationToken cancellationToken)
     {
+        if (CurrentUserId is null) return Unauthorized();
+        if (request.IdUsuario != CurrentUserId) return Forbid();
         if (!await _context.Users.AnyAsync(user => user.Id == request.IdUsuario, cancellationToken))
         {
             ModelState.AddModelError(nameof(request.IdUsuario), "El usuario indicado no existe.");
@@ -105,8 +113,10 @@ public class PokemonUsersController : ControllerBase
         UpdatePokemonUserDto request,
         CancellationToken cancellationToken)
     {
+        if (CurrentUserId is null) return Unauthorized();
+        if (request.IdUsuario != CurrentUserId) return Forbid();
         var pokemonUser = await _context.PokemonUsers
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(item => item.Id == id && item.IdUsuario == CurrentUserId, cancellationToken);
 
         if (pokemonUser is null)
         {
@@ -119,8 +129,8 @@ public class PokemonUsersController : ControllerBase
             return ValidationProblem(ModelState);
         }
 
-        pokemonUser.IdPokemon = request.IdPokemon;
-        pokemonUser.IdUsuario = request.IdUsuario;
+        if (pokemonUser.IdPokemon != request.IdPokemon)
+            return Conflict("No se puede cambiar la especie de un Pokémon existente.");
         pokemonUser.Nombre = request.Nombre;
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -131,13 +141,15 @@ public class PokemonUsersController : ControllerBase
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
         var pokemonUser = await _context.PokemonUsers
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(item => item.Id == id && item.IdUsuario == CurrentUserId, cancellationToken);
 
         if (pokemonUser is null)
         {
             return NotFound();
         }
 
+        if (await _context.Intercambios.AnyAsync(t => t.PokemonUserR == id || t.PokemonUserD == id, cancellationToken))
+            return Conflict("El Pokémon tiene historial de intercambios y no se puede eliminar.");
         _context.PokemonUsers.Remove(pokemonUser);
         await _context.SaveChangesAsync(cancellationToken);
 

@@ -3,10 +3,13 @@ using BackPokemon.DTOs;
 using BackPokemon.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BackPokemon.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/PokemonEstado")]
 public sealed class PokemonEstadoController : ControllerBase
 {
@@ -30,7 +33,8 @@ public sealed class PokemonEstadoController : ControllerBase
 
         var estado = await _context.PokemonEstados
             .FirstOrDefaultAsync(
-                item => item.IdPokemonUser == idPokemonUser,
+                item => item.IdPokemonUser == idPokemonUser
+                    && item.PokemonUser.IdUsuario == User.FindFirstValue(ClaimTypes.NameIdentifier),
                 cancellationToken);
 
         if (estado is null)
