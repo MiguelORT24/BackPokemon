@@ -121,6 +121,52 @@ namespace BackPokemon.Migrations
                     b.ToTable("Batallas");
                 });
 
+            modelBuilder.Entity("BackPokemon.Models.Captura", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Exitosa")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IdPokeball")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IdPokemonUser")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PokemonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PokemonNombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<float>("ProbabilidadAplicada")
+                        .HasColumnType("real");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdPokeball");
+
+                    b.HasIndex("IdPokemonUser");
+
+                    b.HasIndex("UsuarioId", "Fecha");
+
+                    b.ToTable("Captura");
+                });
+
             modelBuilder.Entity("BackPokemon.Models.Intercambio", b =>
                 {
                     b.Property<int>("Id")
@@ -197,6 +243,9 @@ namespace BackPokemon.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("PokeApiItemId")
+                        .HasColumnType("int");
+
                     b.Property<float>("Probabilidad")
                         .HasColumnType("real");
 
@@ -209,6 +258,10 @@ namespace BackPokemon.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PokeApiItemId")
+                        .IsUnique()
+                        .HasFilter("[PokeApiItemId] IS NOT NULL");
 
                     b.ToTable("Item");
                 });
@@ -261,7 +314,8 @@ namespace BackPokemon.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "PokemonId")
+                        .IsUnique();
 
                     b.ToTable("Pokedex");
                 });
@@ -544,6 +598,32 @@ namespace BackPokemon.Migrations
                     b.Navigation("PokemonUserRetador");
                 });
 
+            modelBuilder.Entity("BackPokemon.Models.Captura", b =>
+                {
+                    b.HasOne("BackPokemon.Models.Item", "Pokeball")
+                        .WithMany()
+                        .HasForeignKey("IdPokeball")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BackPokemon.Models.PokemonUser", "PokemonUser")
+                        .WithMany("Capturas")
+                        .HasForeignKey("IdPokemonUser")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BackPokemon.Models.ApplicationUser", "Usuario")
+                        .WithMany("Capturas")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Pokeball");
+
+                    b.Navigation("PokemonUser");
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("BackPokemon.Models.Intercambio", b =>
                 {
                     b.HasOne("BackPokemon.Models.PokemonUser", "PokemonUserDestinatario")
@@ -694,6 +774,8 @@ namespace BackPokemon.Migrations
 
             modelBuilder.Entity("BackPokemon.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("Capturas");
+
                     b.Navigation("ItemUsers");
 
                     b.Navigation("PokedexEntries");
@@ -713,6 +795,8 @@ namespace BackPokemon.Migrations
                     b.Navigation("BatallasComoRetador");
 
                     b.Navigation("BatallasGanadas");
+
+                    b.Navigation("Capturas");
 
                     b.Navigation("Crianza");
 

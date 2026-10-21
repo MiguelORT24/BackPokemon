@@ -80,33 +80,6 @@ public class PokemonUsersController : ControllerBase
         return Ok(pokemonUsers);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<PokemonUserDto>> Create(
-        CreatePokemonUserDto request,
-        CancellationToken cancellationToken)
-    {
-        if (CurrentUserId is null) return Unauthorized();
-        if (request.IdUsuario != CurrentUserId) return Forbid();
-        if (!await _context.Users.AnyAsync(user => user.Id == request.IdUsuario, cancellationToken))
-        {
-            ModelState.AddModelError(nameof(request.IdUsuario), "El usuario indicado no existe.");
-            return ValidationProblem(ModelState);
-        }
-
-        var pokemonUser = new PokemonUser
-        {
-            IdPokemon = request.IdPokemon,
-            IdUsuario = request.IdUsuario,
-            Nombre = request.Nombre
-        };
-
-        _context.PokemonUsers.Add(pokemonUser);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var response = ToDto(pokemonUser);
-        return CreatedAtAction(nameof(GetById), new { id = pokemonUser.Id }, response);
-    }
-
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(
         int id,

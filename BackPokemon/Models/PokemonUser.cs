@@ -26,4 +26,5 @@ public class PokemonUser
     public ICollection<Batalla> BatallasComoRetador { get; set; } = new List<Batalla>();
     public ICollection<Batalla> BatallasComoContrincante { get; set; } = new List<Batalla>();
     public ICollection<Batalla> BatallasGanadas { get; set; } = new List<Batalla>();
+    public ICollection<Captura> Capturas { get; set; } = new List<Captura>();
 }

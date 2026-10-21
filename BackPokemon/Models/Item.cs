@@ -9,6 +9,10 @@ public class Item
     [Key]
     public int Id { get; set; }
 
+    // Identificador global de PokéAPI. Los ítems creados antes de la sincronización
+    // pueden conservar este valor como null.
+    public int? PokeApiItemId { get; set; }
+
     [Required]
     [MaxLength(100)]
     public string Nombre { get; set; } = null!;

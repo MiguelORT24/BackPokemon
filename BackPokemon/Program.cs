@@ -18,6 +18,8 @@ builder.Services.AddIdentityCore<ApplicationUser>()
 
 builder.Services.AddScoped<EfectosEstadoService>();
 builder.Services.AddScoped<TamagotchiService>();
+builder.Services.AddScoped<PokeApiService>();
+builder.Services.AddScoped<PokeApiItemSyncService>();
 
 builder.Services.AddHttpClient("PokeApi", client =>
 {

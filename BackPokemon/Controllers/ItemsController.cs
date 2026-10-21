@@ -3,6 +3,8 @@ using BackPokemon.DTOs;
 using BackPokemon.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using BackPokemon.Services;
 
 namespace BackPokemon.Controllers;
 
@@ -12,10 +14,12 @@ namespace BackPokemon.Controllers;
 public class ItemsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly PokeApiItemSyncService _itemSyncService;
 
-    public ItemsController(ApplicationDbContext context)
+    public ItemsController(ApplicationDbContext context, PokeApiItemSyncService itemSyncService)
     {
         _context = context;
+        _itemSyncService = itemSyncService;
     }
 
     [HttpGet]
@@ -37,6 +41,24 @@ public class ItemsController : ControllerBase
             .FirstOrDefaultAsync(value => value.Id == id, cancellationToken);
 
         return item is null ? NotFound() : Ok(ToDto(item));
+    }
+
+    [Authorize]
+    [HttpPost("sync/poke-balls")]
+    public async Task<IActionResult> SyncPokeBalls(CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _itemSyncService.SyncPokeBalls(cancellationToken));
+        }
+        catch (PokeApiUnavailableException)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, "No se pudo sincronizar el catálogo desde PokéAPI.");
+        }
+        catch (HttpRequestException)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, "No se pudo conectar con PokéAPI.");
+        }
     }
 
     [HttpPost]
@@ -111,6 +133,7 @@ public class ItemsController : ControllerBase
     private static ItemDto ToDto(Item item) => new()
     {
         Id = item.Id,
+        PokeApiItemId = item.PokeApiItemId,
         Nombre = item.Nombre,
         Probabilidad = item.Probabilidad,
         UrlImagen = item.UrlImagen,

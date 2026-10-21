@@ -5,6 +5,7 @@ namespace BackPokemon.DTOs;
 public class ItemDto
 {
     public int Id { get; set; }
+    public int? PokeApiItemId { get; set; }
     public string Nombre { get; set; } = null!;
     public float Probabilidad { get; set; }
     public string UrlImagen { get; set; } = null!;
@@ -12,6 +13,8 @@ public class ItemDto
     public string Efecto { get; set; } = null!;
     public int Valor { get; set; }
 }
+
+public sealed record SincronizacionItemsDto(int Added, int Updated, int Total);
 
 public class CreateItemDto
 {

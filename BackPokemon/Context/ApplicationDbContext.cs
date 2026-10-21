@@ -19,6 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<PokemonCrianza> PokemonCrianzas => Set<PokemonCrianza>();
     public DbSet<Intercambio> Intercambios => Set<Intercambio>();
     public DbSet<Batalla> Batallas => Set<Batalla>();
+    public DbSet<Captura> Capturas => Set<Captura>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,12 +68,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(pokedex => pokedex.UserId)
                 .HasPrincipalKey(user => user.Id)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(pokedex => new { pokedex.UserId, pokedex.PokemonId }).IsUnique();
+        });
+
+        modelBuilder.Entity<Captura>(entity =>
+        {
+            entity.HasKey(captura => captura.Id);
+            entity.Property(captura => captura.ProbabilidadAplicada).HasColumnType("real");
+            entity.HasIndex(captura => new { captura.UsuarioId, captura.Fecha });
+            entity.HasOne(captura => captura.Usuario).WithMany(user => user.Capturas)
+                .HasForeignKey(captura => captura.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(captura => captura.Pokeball).WithMany()
+                .HasForeignKey(captura => captura.IdPokeball).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(captura => captura.PokemonUser).WithMany(pokemon => pokemon.Capturas)
+                .HasForeignKey(captura => captura.IdPokemonUser).OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Item>(entity =>
         {
             entity.HasKey(item => item.Id);
             entity.Property(item => item.Probabilidad).HasColumnType("real");
+            entity.HasIndex(item => item.PokeApiItemId).IsUnique();
         });
 
         modelBuilder.Entity<ItemUser>(entity =>
