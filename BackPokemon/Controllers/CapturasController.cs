@@ -13,7 +13,7 @@ namespace BackPokemon.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/capturas")]
-public sealed class CapturasController(ApplicationDbContext context, PokeApiService pokeApi) : ControllerBase
+public sealed class CapturasController(ApplicationDbContext context, PokeApiService pokeApi, BallReplenishmentService ballReplenishment) : ControllerBase
 {
     private string? UserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -22,6 +22,7 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
     {
         var userId = UserId;
         if (userId is null) return Unauthorized();
+        await ballReplenishment.ReplenishIfDue(userId, cancellationToken);
 
         var encounter = await context.Encuentros.AsNoTracking()
             .FirstOrDefaultAsync(value => value.Id == request.EncuentroId

@@ -23,6 +23,7 @@ builder.Services.AddScoped<TamagotchiService>();
 builder.Services.AddScoped<PokeApiService>();
 builder.Services.AddScoped<PokeApiItemSyncService>();
 builder.Services.AddScoped<BattleRewardService>();
+builder.Services.AddScoped<BallReplenishmentService>();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddHttpClient("PokeApi", client =>

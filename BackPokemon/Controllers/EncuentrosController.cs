@@ -12,7 +12,8 @@ namespace BackPokemon.Controllers;
 
 [ApiController]
 [Route("api/encuentros")]
-public sealed class EncuentrosController(ApplicationDbContext context, PokeApiService pokeApi) : ControllerBase
+public sealed class EncuentrosController(ApplicationDbContext context, PokeApiService pokeApi,
+    BallReplenishmentService ballReplenishment) : ControllerBase
 {
     private const double ZoneSizeDegrees = 0.01;
 
@@ -25,6 +26,7 @@ public sealed class EncuentrosController(ApplicationDbContext context, PokeApiSe
             return BadRequest("Coordenadas o radio fuera de rango.");
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId is null) return Unauthorized();
+        await ballReplenishment.ReplenishIfDue(userId, cancellationToken);
 
         var now = DateTime.UtcNow;
         // Expired spawns and their per-user states are disposable. Capture history is retained

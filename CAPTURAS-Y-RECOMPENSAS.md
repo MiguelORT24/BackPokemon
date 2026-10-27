@@ -6,6 +6,8 @@
 - La sincronización asigna reglas iniciales a Poké Ball (`×1`), Great/Super Ball (`×1,5`), Ultra Ball (`×2`) y Razz Berry (distracción de 30 segundos). Los demás ítems quedan en catálogo, sin efecto jugable hasta configurar uno.
 - Para habilitar más objetos, `PUT /api/Item/{id}/regla-juego` permite a `GameAdmin` configurarlos como `ball` con `multiplicadorCaptura` o `berry` con `duracionSegundos`.
 - `GET /api/me/inventory` sigue siendo la mochila (`ItemUser`) y solo devuelve el inventario del JWT.
+- La recarga pasiva entrega 15 bolas cada 30 minutos: 10 Poké Balls y 5 bolas asignadas al azar entre Great/Super Ball y Ultra Ball. Cada tipo tiene tope de 100; si una de las dos especiales llega al tope, las tiradas se asignan a la otra mientras tenga espacio.
+- La primera consulta elegible entrega el paquete inicial de 15. El sistema calcula los intervalos vencidos cuando el usuario consulta su inventario, busca encuentros o intenta capturar; no requiere un proceso programado ni guarda encuentros adicionales. Si el catálogo o las reglas de captura aún no están sincronizados, la recarga espera y vuelve a intentar en la próxima consulta.
 
 La sincronización y la configuración de ítems requieren el rol `GameAdmin`. `GameAdmin` debe asignarse mediante el proceso administrativo de Identity; el backend no otorga ese rol automáticamente. Las rutas de lectura de catálogo siguen disponibles según el controlador existente. `Item.Probabilidad` se conserva por compatibilidad, pero el cálculo de captura ya no lo usa.
 

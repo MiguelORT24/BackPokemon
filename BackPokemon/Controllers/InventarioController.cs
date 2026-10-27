@@ -1,6 +1,7 @@
 using BackPokemon.Data;
 using BackPokemon.DTOs;
 using BackPokemon.Models;
+using BackPokemon.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
@@ -16,15 +17,19 @@ public class InventarioController : ControllerBase
 {
     private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
     private readonly ApplicationDbContext _context;
+    private readonly BallReplenishmentService _ballReplenishment;
 
-    public InventarioController(ApplicationDbContext context)
+    public InventarioController(ApplicationDbContext context, BallReplenishmentService ballReplenishment)
     {
         _context = context;
+        _ballReplenishment = ballReplenishment;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ItemUserDto>>> GetAll(CancellationToken cancellationToken)
     {
+        if (CurrentUserId is { } userId)
+            await _ballReplenishment.ReplenishIfDue(userId, cancellationToken);
         var inventory = await _context.ItemUsers
             .AsNoTracking()
             .Include(itemUser => itemUser.Item).ThenInclude(item => item.EfectoJuego)
