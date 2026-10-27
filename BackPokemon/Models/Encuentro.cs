@@ -9,9 +9,14 @@ public class Encuentro
     [Key]
     public int Id { get; set; }
 
+    [Required, MaxLength(100)]
+    public string ZonaKey { get; set; } = null!;
+
     [Required]
     public int PokemonId { get; set; }
 
+    // Retained only for encounters created by the previous per-user implementation.
+    // Newly generated shared encounters leave this null.
     [MaxLength(450)]
     public string? UsuarioId { get; set; }
 
@@ -30,24 +35,7 @@ public class Encuentro
     [Required]
     public bool Dormido { get; set; }
 
-    [Required]
-    public bool JugadorDetectado { get; set; }
-
-    [Required]
-    public bool TiroPorLaEspaldaDisponible { get; set; }
-
-    [Required, MaxLength(30)]
-    public string CalidadTiroDisponible { get; set; } = "normal";
-
-    public DateTime? ComiendoHasta { get; set; }
-
-    [Required]
-    public bool Capturado { get; set; }
-
-    public string? CapturadoPorUsuarioId { get; set; }
-
-    public ApplicationUser? CapturadoPorUsuario { get; set; }
     public ApplicationUser? Usuario { get; set; }
-
+    public ICollection<EncuentroUsuario> EstadosUsuario { get; set; } = new List<EncuentroUsuario>();
     public ICollection<Captura> Capturas { get; set; } = new List<Captura>();
 }

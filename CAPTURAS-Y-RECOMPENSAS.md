@@ -11,10 +11,11 @@ La sincronización y la configuración de ítems requieren el rol `GameAdmin`. `
 
 ## Encuentros
 
-- `GET /api/encuentros/cercanos?latitud=...&longitud=...&radioMetros=1000` lista encuentros activos cercanos.
-- `POST /api/encuentros` crea un encuentro para un `usuarioId`; `PUT /api/encuentros/{id}/estado` cambia si el Pokémon está dormido, detectó al jugador, permite un tiro por la espalda y registra la calidad del tiro. Ambas rutas requieren `GameAdmin`.
-- Los encuentros vencen según `DuracionMinutos` y solo se pueden capturar una vez.
-- El cuerpo de creación incluye `usuarioId`; cada jugador tiene estado de encuentro propio, así que sus bayas y detección no afectan a los demás.
+- `GET /api/encuentros/cercanos?latitud=...&longitud=...&radioMetros=1000` lista encuentros activos cercanos y crea uno aleatorio para la zona actual si aún no hay uno activo.
+- Las zonas usan celdas geográficas de `0,01°` (aproximadamente 1 km). Todas las personas que consultan la misma celda ven el mismo Pokémon, que expira 60 minutos después de generarse.
+- El estado particular de cada jugador (si ya lo capturó, bayas, detección y calidad de tiro) vive en `EncuentroUsuario`. Cada cuenta puede capturar su propia copia una vez; capturarla no elimina el encuentro para los demás.
+- `POST /api/encuentros` y `PUT /api/encuentros/{id}/estado` siguen disponibles para administración y pruebas, con rol `GameAdmin`; no son necesarios durante el juego normal.
+- Cada consulta de cercanos elimina los encuentros vencidos. El estado de usuario se borra en cascada; el historial de intentos permanece en `Captura` y conserva el resultado aunque ya no exista el encuentro asociado.
 
 ## Intentar capturar
 
@@ -27,7 +28,7 @@ La sincronización y la configuración de ítems requieren el rol `GameAdmin`. `
 }
 ```
 
-`calidadTiroDisponible` acepta `normal`, `bueno`, `excelente` y `perfecto`, con multiplicadores `×1`, `×1,2`, `×1,5` y `×2`. El servicio de juego la registra en el encuentro y el intento la consume; el cliente de captura no puede enviarla. El tiro por la espalda se decide desde el estado del encuentro, no desde un booleano enviado por el cliente. Los modificadores de “no te vio”, comer y dormir se leen del encuentro.
+`calidadTiroDisponible` acepta `normal`, `bueno`, `excelente` y `perfecto`, con multiplicadores `×1`, `×1,2`, `×1,5` y `×2`. El estado del jugador en el encuentro registra y consume la calidad y el tiro por la espalda; el cliente de captura no puede enviarlos directamente. “No te vio” y comer también son estado por jugador; dormir es una condición compartida del spawn.
 
 La probabilidad normal es `capture_rate / 255 × multiplicador de bola × modificadores`, limitada a 100 %. La captura crítica ocurre con `2 % × especies distintas de la Pokédex`, hasta `25 %`, y garantiza el éxito. La respuesta y el historial conservan los factores y resultado de cada intento. Una Poké Ball se consume tanto si el intento tiene éxito como si falla.
 

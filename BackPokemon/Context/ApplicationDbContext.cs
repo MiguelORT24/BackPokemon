@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Captura> Capturas => Set<Captura>();
     public DbSet<EfectoItem> EfectosItems => Set<EfectoItem>();
     public DbSet<Encuentro> Encuentros => Set<Encuentro>();
+    public DbSet<EncuentroUsuario> EncuentrosUsuario => Set<EncuentroUsuario>();
     public DbSet<ObjetoCampo> ObjetosCampo => Set<ObjetoCampo>();
     public DbSet<RecompensaBatalla> RecompensasBatalla => Set<RecompensaBatalla>();
 
@@ -101,11 +102,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Encuentro>(entity =>
         {
             entity.HasKey(encounter => encounter.Id);
-            entity.HasIndex(encounter => new { encounter.Capturado, encounter.FechaExpiracion });
-            entity.HasOne(encounter => encounter.CapturadoPorUsuario).WithMany()
-                .HasForeignKey(encounter => encounter.CapturadoPorUsuarioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(encounter => encounter.ZonaKey).IsUnique();
+            entity.HasIndex(encounter => encounter.FechaExpiracion);
+            entity.HasIndex(encounter => new { encounter.Latitud, encounter.Longitud });
+            entity.HasIndex(encounter => encounter.UsuarioId);
             entity.HasOne(encounter => encounter.Usuario).WithMany()
                 .HasForeignKey(encounter => encounter.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EncuentroUsuario>(entity =>
+        {
+            entity.HasKey(state => new { state.EncuentroId, state.UsuarioId });
+            entity.HasIndex(state => new { state.UsuarioId, state.Capturado });
+            entity.HasOne(state => state.Encuentro).WithMany(encounter => encounter.EstadosUsuario)
+                .HasForeignKey(state => state.EncuentroId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(state => state.Usuario).WithMany()
+                .HasForeignKey(state => state.UsuarioId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ObjetoCampo>(entity =>

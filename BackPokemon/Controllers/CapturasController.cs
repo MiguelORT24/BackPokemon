@@ -24,9 +24,10 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
         if (userId is null) return Unauthorized();
 
         var encounter = await context.Encuentros.AsNoTracking()
-            .FirstOrDefaultAsync(value => value.Id == request.EncuentroId && value.UsuarioId == userId, cancellationToken);
+            .FirstOrDefaultAsync(value => value.Id == request.EncuentroId
+                && (value.UsuarioId == null || value.UsuarioId == userId), cancellationToken);
         if (encounter is null) return NotFound("El encuentro no existe.");
-        if (encounter.Capturado || encounter.FechaExpiracion <= DateTime.UtcNow)
+        if (encounter.FechaExpiracion <= DateTime.UtcNow)
             return Conflict("El encuentro ya terminó o expiró.");
 
         PokeApiPokemon pokemon;
@@ -54,9 +55,20 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
         await using var transaction = await context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
         var currentEncounter = await context.Encuentros
-            .FirstOrDefaultAsync(value => value.Id == request.EncuentroId && value.UsuarioId == userId, cancellationToken);
-        if (currentEncounter is null || currentEncounter.Capturado || currentEncounter.FechaExpiracion <= DateTime.UtcNow)
+            .FirstOrDefaultAsync(value => value.Id == request.EncuentroId
+                && (value.UsuarioId == null || value.UsuarioId == userId), cancellationToken);
+        if (currentEncounter is null || currentEncounter.FechaExpiracion <= DateTime.UtcNow)
             return Conflict("El encuentro ya terminó o expiró.");
+
+        var userState = await context.EncuentrosUsuario.FirstOrDefaultAsync(value =>
+            value.EncuentroId == currentEncounter.Id && value.UsuarioId == userId, cancellationToken);
+        if (userState?.Capturado == true)
+            return Conflict("Ya capturaste tu copia de este Pokémon.");
+        if (userState is null)
+        {
+            userState = new EncuentroUsuario { EncuentroId = currentEncounter.Id, UsuarioId = userId };
+            context.EncuentrosUsuario.Add(userState);
+        }
 
         var inventory = await context.ItemUsers.Include(entry => entry.Item)
             .ThenInclude(item => item.EfectoJuego)
@@ -69,22 +81,22 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
 
         var now = DateTime.UtcNow;
         var ballMultiplier = inventory.Item.EfectoJuego.MultiplicadorCaptura.Value;
-        var noTeVio = !currentEncounter.JugadorDetectado;
+        var noTeVio = !userState.JugadorDetectado;
         var situationMultiplier = 1f;
-        var backThrow = currentEncounter.TiroPorLaEspaldaDisponible && !currentEncounter.JugadorDetectado;
+        var backThrow = userState.TiroPorLaEspaldaDisponible && !userState.JugadorDetectado;
         if (backThrow)
         {
             situationMultiplier *= 2f;
         }
-        else if (!currentEncounter.JugadorDetectado)
+        else if (!userState.JugadorDetectado)
         {
             situationMultiplier *= 1.5f;
         }
-        var eating = currentEncounter.ComiendoHasta is { } eatingUntil && eatingUntil > now;
+        var eating = userState.ComiendoHasta is { } eatingUntil && eatingUntil > now;
         if (eating) situationMultiplier *= 1.5f;
         if (currentEncounter.Dormido) situationMultiplier *= 2f;
 
-        var quality = currentEncounter.CalidadTiroDisponible;
+        var quality = userState.CalidadTiroDisponible;
         var qualityMultiplier = quality switch
         {
             "bueno" => 1.2f,
@@ -104,10 +116,10 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
         // El lanzamiento revela al jugador, de modo que el bonus sorpresa solo aplica al primer tiro.
         if (noTeVio)
         {
-            currentEncounter.JugadorDetectado = true;
-            currentEncounter.TiroPorLaEspaldaDisponible = false;
+            userState.JugadorDetectado = true;
+            userState.TiroPorLaEspaldaDisponible = false;
         }
-        currentEncounter.CalidadTiroDisponible = "normal";
+        userState.CalidadTiroDisponible = "normal";
 
         inventory.Cantidad--;
         var capture = new Captura
@@ -136,8 +148,8 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
         PokemonUser? capturedPokemon = null;
         if (success)
         {
-            currentEncounter.Capturado = true;
-            currentEncounter.CapturadoPorUsuarioId = userId;
+            userState.Capturado = true;
+            userState.FechaCaptura = now;
             capturedPokemon = new PokemonUser
             {
                 IdPokemon = pokemon.Id,
@@ -186,12 +198,15 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
         await using var transaction = await context.Database.BeginTransactionAsync(
             IsolationLevel.Serializable, cancellationToken);
         var encounter = await context.Encuentros.FirstOrDefaultAsync(value => value.Id == id
-            && value.UsuarioId == userId, cancellationToken);
+            && (value.UsuarioId == null || value.UsuarioId == userId), cancellationToken);
         if (encounter is null) return NotFound();
         var now = DateTime.UtcNow;
-        if (encounter.Capturado || encounter.FechaExpiracion <= now)
+        if (encounter.FechaExpiracion <= now)
             return Conflict("El encuentro ya terminó o expiró.");
-        if (encounter.ComiendoHasta > now) return Conflict("El Pokémon ya está comiendo una baya.");
+        var userState = await context.EncuentrosUsuario.FirstOrDefaultAsync(value =>
+            value.EncuentroId == id && value.UsuarioId == userId, cancellationToken);
+        if (userState?.Capturado == true) return Conflict("Ya capturaste tu copia de este Pokémon.");
+        if (userState?.ComiendoHasta > now) return Conflict("El Pokémon ya está comiendo una baya.");
 
         var inventory = await context.ItemUsers.Include(entry => entry.Item).ThenInclude(item => item.EfectoJuego)
             .SingleOrDefaultAsync(entry => entry.IdUser == userId && entry.IdItem == request.BayaItemId,
@@ -201,10 +216,15 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
         if (effect?.Tipo != "berry") return BadRequest("El ítem indicado no es una baya de captura.");
 
         inventory.Cantidad--;
-        encounter.ComiendoHasta = now.AddSeconds(effect.DuracionSegundos ?? 30);
+        if (userState is null)
+        {
+            userState = new EncuentroUsuario { EncuentroId = id, UsuarioId = userId };
+            context.EncuentrosUsuario.Add(userState);
+        }
+        userState.ComiendoHasta = now.AddSeconds(effect.DuracionSegundos ?? 30);
         await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
-        return Ok(new { encuentroId = id, comiendoHasta = encounter.ComiendoHasta, cantidadRestante = inventory.Cantidad });
+        return Ok(new { encuentroId = id, comiendoHasta = userState.ComiendoHasta, cantidadRestante = inventory.Cantidad });
     }
 
     [HttpGet("/api/me/capturas")]

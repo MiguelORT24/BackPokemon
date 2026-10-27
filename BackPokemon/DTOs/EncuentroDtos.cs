@@ -5,16 +5,15 @@ namespace BackPokemon.DTOs;
 public sealed class CrearEncuentroDto
 {
     [Range(1, int.MaxValue)] public int PokemonId { get; set; }
-    [Required, MaxLength(450)] public string UsuarioId { get; set; } = null!;
     [Range(-90, 90)] public double Latitud { get; set; }
     [Range(-180, 180)] public double Longitud { get; set; }
     public bool Dormido { get; set; }
-    [Range(1, 1440)] public int DuracionMinutos { get; set; } = 30;
 }
 
 public sealed class ActualizarEstadoEncuentroDto
 {
     public bool Dormido { get; set; }
+    [MaxLength(450)] public string? UsuarioId { get; set; }
     public bool JugadorDetectado { get; set; }
     public bool TiroPorLaEspaldaDisponible { get; set; }
     [RegularExpression("^(normal|bueno|excelente|perfecto)$")]
