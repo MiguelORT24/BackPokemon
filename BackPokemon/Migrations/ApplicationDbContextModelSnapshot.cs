@@ -101,6 +101,10 @@ namespace BackPokemon.Migrations
                     b.Property<int>("IdPokemonRival")
                         .HasColumnType("int");
 
+                    b.Property<Guid?>("LlaveIdempotencia")
+                        .IsRequired()
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("PokemonUserGanador")
                         .HasColumnType("int");
 
@@ -112,6 +116,10 @@ namespace BackPokemon.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LlaveIdempotencia")
+                        .IsUnique()
+                        .HasFilter("[LlaveIdempotencia] IS NOT NULL");
+
                     b.HasIndex("PokemonUserGanador");
 
                     b.HasIndex("PokemonUserId");
@@ -119,6 +127,173 @@ namespace BackPokemon.Migrations
                     b.HasIndex("PokemonUserR");
 
                     b.ToTable("Batallas");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.Captura", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CalidadTiro")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("CaptureRate")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("EncuentroId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Exitosa")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("FueCritica")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("IdPokeball")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IdPokemonUser")
+                        .HasColumnType("int");
+
+                    b.Property<float>("MultiplicadorBola")
+                        .HasColumnType("real");
+
+                    b.Property<float>("MultiplicadorSituacional")
+                        .HasColumnType("real");
+
+                    b.Property<bool>("NoTeVio")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PokemonComiendo")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("PokemonDormido")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PokemonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PokemonNombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<float>("ProbabilidadAplicada")
+                        .HasColumnType("real");
+
+                    b.Property<float>("ProbabilidadCritica")
+                        .HasColumnType("real");
+
+                    b.Property<bool>("TiroPorLaEspalda")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EncuentroId");
+
+                    b.HasIndex("IdPokeball");
+
+                    b.HasIndex("IdPokemonUser");
+
+                    b.HasIndex("UsuarioId", "Fecha");
+
+                    b.ToTable("Captura");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.EfectoItem", b =>
+                {
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("DuracionSegundos")
+                        .HasColumnType("int");
+
+                    b.Property<float?>("MultiplicadorCaptura")
+                        .HasColumnType("real");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.HasKey("ItemId");
+
+                    b.ToTable("EfectoItem");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.Encuentro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CalidadTiroDisponible")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool>("Capturado")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CapturadoPorUsuarioId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("ComiendoHasta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("Dormido")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("FechaExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("JugadorDetectado")
+                        .HasColumnType("bit");
+
+                    b.Property<double>("Latitud")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitud")
+                        .HasColumnType("float");
+
+                    b.Property<int>("PokemonId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PokemonNombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("TiroPorLaEspaldaDisponible")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("UsuarioId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CapturadoPorUsuarioId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("Capturado", "FechaExpiracion");
+
+                    b.ToTable("Encuentro");
                 });
 
             modelBuilder.Entity("BackPokemon.Models.Intercambio", b =>
@@ -197,6 +372,9 @@ namespace BackPokemon.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("PokeApiItemId")
+                        .HasColumnType("int");
+
                     b.Property<float>("Probabilidad")
                         .HasColumnType("real");
 
@@ -209,6 +387,10 @@ namespace BackPokemon.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PokeApiItemId")
+                        .IsUnique()
+                        .HasFilter("[PokeApiItemId] IS NOT NULL");
 
                     b.ToTable("Item");
                 });
@@ -241,6 +423,44 @@ namespace BackPokemon.Migrations
                     b.ToTable("ItemUser");
                 });
 
+            modelBuilder.Entity("BackPokemon.Models.ObjetoCampo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("FechaRecogida")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("Latitud")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Longitud")
+                        .HasColumnType("float");
+
+                    b.Property<string>("RecogidoPorUsuarioId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("RecogidoPorUsuarioId", "FechaExpiracion");
+
+                    b.ToTable("ObjetoCampo");
+                });
+
             modelBuilder.Entity("BackPokemon.Models.Pokedex", b =>
                 {
                     b.Property<int>("Id")
@@ -261,7 +481,8 @@ namespace BackPokemon.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "PokemonId")
+                        .IsUnique();
 
                     b.ToTable("Pokedex");
                 });
@@ -386,6 +607,43 @@ namespace BackPokemon.Migrations
                     b.HasIndex("IdUsuario");
 
                     b.ToTable("PokemonUser");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.RecompensaBatalla", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BatallaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatallaId")
+                        .IsUnique();
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("RecompensaBatalla");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -544,6 +802,67 @@ namespace BackPokemon.Migrations
                     b.Navigation("PokemonUserRetador");
                 });
 
+            modelBuilder.Entity("BackPokemon.Models.Captura", b =>
+                {
+                    b.HasOne("BackPokemon.Models.Encuentro", "Encuentro")
+                        .WithMany("Capturas")
+                        .HasForeignKey("EncuentroId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BackPokemon.Models.Item", "Pokeball")
+                        .WithMany()
+                        .HasForeignKey("IdPokeball")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BackPokemon.Models.PokemonUser", "PokemonUser")
+                        .WithMany("Capturas")
+                        .HasForeignKey("IdPokemonUser")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("BackPokemon.Models.ApplicationUser", "Usuario")
+                        .WithMany("Capturas")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Encuentro");
+
+                    b.Navigation("Pokeball");
+
+                    b.Navigation("PokemonUser");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.EfectoItem", b =>
+                {
+                    b.HasOne("BackPokemon.Models.Item", "Item")
+                        .WithOne("EfectoJuego")
+                        .HasForeignKey("BackPokemon.Models.EfectoItem", "ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.Encuentro", b =>
+                {
+                    b.HasOne("BackPokemon.Models.ApplicationUser", "CapturadoPorUsuario")
+                        .WithMany()
+                        .HasForeignKey("CapturadoPorUsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BackPokemon.Models.ApplicationUser", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CapturadoPorUsuario");
+
+                    b.Navigation("Usuario");
+                });
+
             modelBuilder.Entity("BackPokemon.Models.Intercambio", b =>
                 {
                     b.HasOne("BackPokemon.Models.PokemonUser", "PokemonUserDestinatario")
@@ -597,6 +916,17 @@ namespace BackPokemon.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("BackPokemon.Models.ObjetoCampo", b =>
+                {
+                    b.HasOne("BackPokemon.Models.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Item");
+                });
+
             modelBuilder.Entity("BackPokemon.Models.Pokedex", b =>
                 {
                     b.HasOne("BackPokemon.Models.ApplicationUser", "Usuario")
@@ -637,6 +967,33 @@ namespace BackPokemon.Migrations
                         .HasForeignKey("IdUsuario")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.RecompensaBatalla", b =>
+                {
+                    b.HasOne("BackPokemon.Models.Batalla", "Batalla")
+                        .WithOne("Recompensa")
+                        .HasForeignKey("BackPokemon.Models.RecompensaBatalla", "BatallaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BackPokemon.Models.Item", "Item")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BackPokemon.Models.ApplicationUser", "Usuario")
+                        .WithMany("RecompensasBatalla")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batalla");
+
+                    b.Navigation("Item");
 
                     b.Navigation("Usuario");
                 });
@@ -694,15 +1051,31 @@ namespace BackPokemon.Migrations
 
             modelBuilder.Entity("BackPokemon.Models.ApplicationUser", b =>
                 {
+                    b.Navigation("Capturas");
+
                     b.Navigation("ItemUsers");
 
                     b.Navigation("PokedexEntries");
 
                     b.Navigation("PokemonUsers");
+
+                    b.Navigation("RecompensasBatalla");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.Batalla", b =>
+                {
+                    b.Navigation("Recompensa");
+                });
+
+            modelBuilder.Entity("BackPokemon.Models.Encuentro", b =>
+                {
+                    b.Navigation("Capturas");
                 });
 
             modelBuilder.Entity("BackPokemon.Models.Item", b =>
                 {
+                    b.Navigation("EfectoJuego");
+
                     b.Navigation("ItemUsers");
                 });
 
@@ -713,6 +1086,8 @@ namespace BackPokemon.Migrations
                     b.Navigation("BatallasComoRetador");
 
                     b.Navigation("BatallasGanadas");
+
+                    b.Navigation("Capturas");
 
                     b.Navigation("Crianza");
 

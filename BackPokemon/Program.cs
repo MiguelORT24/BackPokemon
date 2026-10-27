@@ -3,6 +3,7 @@ using BackPokemon.Models;
 using BackPokemon.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -14,10 +15,15 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddIdentityCore<ApplicationUser>()
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddScoped<EfectosEstadoService>();
 builder.Services.AddScoped<TamagotchiService>();
+builder.Services.AddScoped<PokeApiService>();
+builder.Services.AddScoped<PokeApiItemSyncService>();
+builder.Services.AddScoped<BattleRewardService>();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddHttpClient("PokeApi", client =>
 {

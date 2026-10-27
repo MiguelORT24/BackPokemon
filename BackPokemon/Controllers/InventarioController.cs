@@ -3,14 +3,18 @@ using BackPokemon.DTOs;
 using BackPokemon.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 namespace BackPokemon.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 [Route("api/ItemUser")]
 public class InventarioController : ControllerBase
 {
+    private string? CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier);
     private readonly ApplicationDbContext _context;
 
     public InventarioController(ApplicationDbContext context)
@@ -23,6 +27,8 @@ public class InventarioController : ControllerBase
     {
         var inventory = await _context.ItemUsers
             .AsNoTracking()
+            .Include(itemUser => itemUser.Item).ThenInclude(item => item.EfectoJuego)
+            .Where(itemUser => itemUser.IdUser == CurrentUserId)
             .Select(itemUser => ToDto(itemUser))
             .ToListAsync(cancellationToken);
 
@@ -33,9 +39,9 @@ public class InventarioController : ControllerBase
     public async Task<ActionResult<ItemUserDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var itemUser = await _context.ItemUsers
-            .Include(item => item.Item)
+            .Include(item => item.Item).ThenInclude(item => item.EfectoJuego)
             .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(item => item.Id == id && item.IdUser == CurrentUserId, cancellationToken);
 
         return itemUser is null ? NotFound() : Ok(ToDto(itemUser));
     }
@@ -45,9 +51,10 @@ public class InventarioController : ControllerBase
         string userId,
         CancellationToken cancellationToken)
     {
+        if (userId != CurrentUserId) return NotFound();
         var inventory = await _context.ItemUsers
             .AsNoTracking()
-            .Include(itemUser => itemUser.Item)
+            .Include(itemUser => itemUser.Item).ThenInclude(item => item.EfectoJuego)
             .Where(itemUser => itemUser.IdUser == userId)
             .Select(itemUser => ToDto(itemUser))
             .ToListAsync(cancellationToken);
@@ -55,91 +62,9 @@ public class InventarioController : ControllerBase
         return Ok(inventory);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<ItemUserDto>> Create(
-        AssignItemDto request,
-        CancellationToken cancellationToken)
-    {
-        if (!await _context.Items.AnyAsync(item => item.Id == request.IdItem, cancellationToken))
-        {
-            ModelState.AddModelError(nameof(request.IdItem), "El ítem indicado no existe.");
-        }
-
-        if (!await _context.Users.AnyAsync(user => user.Id == request.IdUser, cancellationToken))
-        {
-            ModelState.AddModelError(nameof(request.IdUser), "El usuario indicado no existe.");
-        }
-
-        if (!ModelState.IsValid)
-        {
-            return ValidationProblem(ModelState);
-        }
-
-        var itemUser = await _context.ItemUsers
-            .Include(item => item.Item)
-            .FirstOrDefaultAsync(
-                item => item.IdItem == request.IdItem
-                    && item.IdUser == request.IdUser,
-                cancellationToken);
-
-        if (itemUser is null)
-        {
-            itemUser = new ItemUser
-            {
-                IdItem = request.IdItem,
-                IdUser = request.IdUser,
-                Cantidad = request.Cantidad
-            };
-
-            _context.ItemUsers.Add(itemUser);
-        }
-        else
-        {
-            itemUser.Cantidad += request.Cantidad;
-        }
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        var response = ToDto(itemUser);
-        return CreatedAtAction(nameof(GetById), new { id = itemUser.Id }, response);
-    }
-
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(
-        int id,
-        UpdateCantidadItemDto request,
-        CancellationToken cancellationToken)
-    {
-        var itemUser = await _context.ItemUsers
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-
-        if (itemUser is null)
-        {
-            return NotFound();
-        }
-
-        itemUser.Cantidad = request.Cantidad;
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return NoContent();
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
-    {
-        var itemUser = await _context.ItemUsers
-            .FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-
-        if (itemUser is null)
-        {
-            return NotFound();
-        }
-
-        _context.ItemUsers.Remove(itemUser);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return NoContent();
-    }
+    [HttpGet("/api/me/inventory")]
+    public Task<ActionResult<IEnumerable<ItemUserDto>>> GetMine(CancellationToken cancellationToken) =>
+        GetAll(cancellationToken);
 
     private static ItemUserDto ToDto(ItemUser itemUser) => new()
     {
@@ -150,12 +75,16 @@ public class InventarioController : ControllerBase
         Item = itemUser.Item is null ? null : new ItemDto
         {
             Id = itemUser.Item.Id,
+            PokeApiItemId = itemUser.Item.PokeApiItemId,
             Nombre = itemUser.Item.Nombre,
             Probabilidad = itemUser.Item.Probabilidad,
             UrlImagen = itemUser.Item.UrlImagen,
             Descripcion = itemUser.Item.Descripcion,
             Efecto = itemUser.Item.Efecto,
-            Valor = itemUser.Item.Valor
+            Valor = itemUser.Item.Valor,
+            TipoJuego = itemUser.Item.EfectoJuego?.Tipo,
+            MultiplicadorCaptura = itemUser.Item.EfectoJuego?.MultiplicadorCaptura,
+            DuracionSegundos = itemUser.Item.EfectoJuego?.DuracionSegundos
         }
     };
 }

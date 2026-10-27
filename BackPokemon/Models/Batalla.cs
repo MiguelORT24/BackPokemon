@@ -21,6 +21,10 @@ public class Batalla
     [Required]
     public int PokemonUserGanador { get; set; }
 
+    [Required]
+    public Guid? LlaveIdempotencia { get; set; }
+
     public PokemonUser PokemonUserRetador { get; set; } = null!;
     public PokemonUser PokemonUserGanadorNavigation { get; set; } = null!;
+    public RecompensaBatalla? Recompensa { get; set; }
 }

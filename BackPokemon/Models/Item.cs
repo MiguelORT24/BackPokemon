@@ -9,11 +9,16 @@ public class Item
     [Key]
     public int Id { get; set; }
 
+    // Identificador global de PokéAPI. Los ítems creados antes de la sincronización
+    // pueden conservar este valor como null.
+    public int? PokeApiItemId { get; set; }
+
     [Required]
     [MaxLength(100)]
     public string Nombre { get; set; } = null!;
 
     [Required]
+    // Legacy catalog value. Capture rules live in EfectoItem, not in the external catalog.
     public float Probabilidad { get; set; }
 
     [Required]
@@ -32,4 +37,5 @@ public class Item
     public int Valor { get; set; }
 
     public ICollection<ItemUser> ItemUsers { get; set; } = new List<ItemUser>();
+    public EfectoItem? EfectoJuego { get; set; }
 }
