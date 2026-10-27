@@ -20,6 +20,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Intercambio> Intercambios => Set<Intercambio>();
     public DbSet<Batalla> Batallas => Set<Batalla>();
     public DbSet<Captura> Capturas => Set<Captura>();
+    public DbSet<EfectoItem> EfectosItems => Set<EfectoItem>();
+    public DbSet<Encuentro> Encuentros => Set<Encuentro>();
+    public DbSet<ObjetoCampo> ObjetosCampo => Set<ObjetoCampo>();
+    public DbSet<RecompensaBatalla> RecompensasBatalla => Set<RecompensaBatalla>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,6 +86,46 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(captura => captura.IdPokeball).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(captura => captura.PokemonUser).WithMany(pokemon => pokemon.Capturas)
                 .HasForeignKey(captura => captura.IdPokemonUser).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(captura => captura.Encuentro).WithMany(encuentro => encuentro.Capturas)
+                .HasForeignKey(captura => captura.EncuentroId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<EfectoItem>(entity =>
+        {
+            entity.HasKey(effect => effect.ItemId);
+            entity.Property(effect => effect.MultiplicadorCaptura).HasColumnType("real");
+            entity.HasOne(effect => effect.Item).WithOne(item => item.EfectoJuego)
+                .HasForeignKey<EfectoItem>(effect => effect.ItemId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Encuentro>(entity =>
+        {
+            entity.HasKey(encounter => encounter.Id);
+            entity.HasIndex(encounter => new { encounter.Capturado, encounter.FechaExpiracion });
+            entity.HasOne(encounter => encounter.CapturadoPorUsuario).WithMany()
+                .HasForeignKey(encounter => encounter.CapturadoPorUsuarioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(encounter => encounter.Usuario).WithMany()
+                .HasForeignKey(encounter => encounter.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ObjetoCampo>(entity =>
+        {
+            entity.HasKey(drop => drop.Id);
+            entity.HasOne(drop => drop.Item).WithMany().HasForeignKey(drop => drop.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(drop => new { drop.RecogidoPorUsuarioId, drop.FechaExpiracion });
+        });
+
+        modelBuilder.Entity<RecompensaBatalla>(entity =>
+        {
+            entity.HasKey(reward => reward.Id);
+            entity.HasIndex(reward => reward.BatallaId).IsUnique();
+            entity.HasOne(reward => reward.Batalla).WithOne(battle => battle.Recompensa)
+                .HasForeignKey<RecompensaBatalla>(reward => reward.BatallaId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(reward => reward.Usuario).WithMany(user => user.RecompensasBatalla)
+                .HasForeignKey(reward => reward.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(reward => reward.Item).WithMany().HasForeignKey(reward => reward.ItemId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Item>(entity =>
@@ -134,6 +178,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Batalla>(entity =>
         {
             entity.HasKey(batalla => batalla.Id);
+            entity.HasIndex(batalla => batalla.LlaveIdempotencia).IsUnique()
+                .HasFilter("[LlaveIdempotencia] IS NOT NULL");
 
             entity.HasOne(batalla => batalla.PokemonUserRetador)
                 .WithMany(pokemonUser => pokemonUser.BatallasComoRetador)

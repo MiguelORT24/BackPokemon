@@ -15,6 +15,16 @@ namespace BackPokemon.Migrations
                 name: "IX_Pokedex_UserId",
                 table: "Pokedex");
 
+            // La API anterior permitía duplicar especies en la Pokédex. Conservamos
+            // la entrada más antigua antes de establecer la unicidad por especie.
+            migrationBuilder.Sql(@"
+WITH Duplicadas AS
+(
+    SELECT Id, ROW_NUMBER() OVER (PARTITION BY UserId, PokemonId ORDER BY Fecha, Id) AS Numero
+    FROM Pokedex
+)
+DELETE FROM Duplicadas WHERE Numero > 1;");
+
             migrationBuilder.CreateTable(
                 name: "Captura",
                 columns: table => new

@@ -9,10 +9,15 @@ public class BatallaDto
     public int IdPokemonRival { get; set; }
     public DateTime Fecha { get; set; }
     public int PokemonUserGanador { get; set; }
+    public Guid LlaveIdempotencia { get; set; }
+    public ItemDto? Recompensa { get; set; }
+    public int? CantidadRecompensa { get; set; }
 }
 
 public class CreateBatallaDto
 {
+    [Required]
+    public Guid LlaveIdempotencia { get; set; }
     [Required]
     public int PokemonUserR { get; set; }
 

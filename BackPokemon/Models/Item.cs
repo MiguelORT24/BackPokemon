@@ -18,6 +18,7 @@ public class Item
     public string Nombre { get; set; } = null!;
 
     [Required]
+    // Legacy catalog value. Capture rules live in EfectoItem, not in the external catalog.
     public float Probabilidad { get; set; }
 
     [Required]
@@ -36,4 +37,5 @@ public class Item
     public int Valor { get; set; }
 
     public ICollection<ItemUser> ItemUsers { get; set; } = new List<ItemUser>();
+    public EfectoItem? EfectoJuego { get; set; }
 }

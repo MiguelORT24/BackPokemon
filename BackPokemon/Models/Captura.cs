@@ -15,6 +15,8 @@ public class Captura
     [Required]
     public int PokemonId { get; set; }
 
+    public int? EncuentroId { get; set; }
+
     [Required]
     [MaxLength(100)]
     public string PokemonNombre { get; set; } = null!;
@@ -28,6 +30,27 @@ public class Captura
     [Required]
     public float ProbabilidadAplicada { get; set; }
 
+    public int CaptureRate { get; set; }
+
+    public float MultiplicadorBola { get; set; }
+
+    public float MultiplicadorSituacional { get; set; }
+
+    public bool NoTeVio { get; set; }
+
+    public bool TiroPorLaEspalda { get; set; }
+
+    public bool PokemonComiendo { get; set; }
+
+    public bool PokemonDormido { get; set; }
+
+    public float ProbabilidadCritica { get; set; }
+
+    public bool FueCritica { get; set; }
+
+    [MaxLength(30)]
+    public string CalidadTiro { get; set; } = "normal";
+
     [Required]
     public DateTime Fecha { get; set; }
 
@@ -36,4 +59,5 @@ public class Captura
     public ApplicationUser Usuario { get; set; } = null!;
     public Item Pokeball { get; set; } = null!;
     public PokemonUser? PokemonUser { get; set; }
+    public Encuentro? Encuentro { get; set; }
 }

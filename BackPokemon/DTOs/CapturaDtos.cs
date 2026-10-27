@@ -5,21 +5,33 @@ namespace BackPokemon.DTOs;
 public sealed class IntentarCapturaDto
 {
     [Range(1, int.MaxValue)]
-    public int PokemonId { get; set; }
+    public int EncuentroId { get; set; }
 
     [Range(1, int.MaxValue)]
     public int PokeballItemId { get; set; }
+
 }
 
 public sealed record CapturaDto(
     int Id,
+    int? EncuentroId,
     int PokemonId,
     string PokemonNombre,
     int PokeballItemId,
     bool Exitosa,
     float ProbabilidadAplicada,
     int? PokemonUserId,
-    DateTime Fecha);
+    DateTime Fecha,
+    int CaptureRate,
+    float MultiplicadorBola,
+    float MultiplicadorSituacional,
+    bool NoTeVio,
+    bool TiroPorLaEspalda,
+    bool PokemonComiendo,
+    bool PokemonDormido,
+    float ProbabilidadCritica,
+    bool FueCritica,
+    string CalidadTiro);
 
 public sealed record ResultadoCapturaDto(
     int CaptureId,

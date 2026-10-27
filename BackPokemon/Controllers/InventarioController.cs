@@ -27,7 +27,7 @@ public class InventarioController : ControllerBase
     {
         var inventory = await _context.ItemUsers
             .AsNoTracking()
-            .Include(itemUser => itemUser.Item)
+            .Include(itemUser => itemUser.Item).ThenInclude(item => item.EfectoJuego)
             .Where(itemUser => itemUser.IdUser == CurrentUserId)
             .Select(itemUser => ToDto(itemUser))
             .ToListAsync(cancellationToken);
@@ -39,7 +39,7 @@ public class InventarioController : ControllerBase
     public async Task<ActionResult<ItemUserDto>> GetById(int id, CancellationToken cancellationToken)
     {
         var itemUser = await _context.ItemUsers
-            .Include(item => item.Item)
+            .Include(item => item.Item).ThenInclude(item => item.EfectoJuego)
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == id && item.IdUser == CurrentUserId, cancellationToken);
 
@@ -54,7 +54,7 @@ public class InventarioController : ControllerBase
         if (userId != CurrentUserId) return NotFound();
         var inventory = await _context.ItemUsers
             .AsNoTracking()
-            .Include(itemUser => itemUser.Item)
+            .Include(itemUser => itemUser.Item).ThenInclude(item => item.EfectoJuego)
             .Where(itemUser => itemUser.IdUser == userId)
             .Select(itemUser => ToDto(itemUser))
             .ToListAsync(cancellationToken);
@@ -75,12 +75,16 @@ public class InventarioController : ControllerBase
         Item = itemUser.Item is null ? null : new ItemDto
         {
             Id = itemUser.Item.Id,
+            PokeApiItemId = itemUser.Item.PokeApiItemId,
             Nombre = itemUser.Item.Nombre,
             Probabilidad = itemUser.Item.Probabilidad,
             UrlImagen = itemUser.Item.UrlImagen,
             Descripcion = itemUser.Item.Descripcion,
             Efecto = itemUser.Item.Efecto,
-            Valor = itemUser.Item.Valor
+            Valor = itemUser.Item.Valor,
+            TipoJuego = itemUser.Item.EfectoJuego?.Tipo,
+            MultiplicadorCaptura = itemUser.Item.EfectoJuego?.MultiplicadorCaptura,
+            DuracionSegundos = itemUser.Item.EfectoJuego?.DuracionSegundos
         }
     };
 }

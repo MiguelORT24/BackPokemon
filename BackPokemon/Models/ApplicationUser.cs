@@ -8,4 +8,5 @@ public class ApplicationUser : IdentityUser
     public ICollection<Pokedex> PokedexEntries { get; set; } = new List<Pokedex>();
     public ICollection<ItemUser> ItemUsers { get; set; } = new List<ItemUser>();
     public ICollection<Captura> Capturas { get; set; } = new List<Captura>();
+    public ICollection<RecompensaBatalla> RecompensasBatalla { get; set; } = new List<RecompensaBatalla>();
 }

@@ -1,9 +1,10 @@
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BackPokemon.Services;
 
-public sealed class PokeApiService(IHttpClientFactory httpClientFactory)
+public sealed class PokeApiService(IHttpClientFactory httpClientFactory, IMemoryCache cache)
 {
     public async Task<PokeApiPokemon> GetPokemon(int pokemonId, CancellationToken cancellationToken)
     {
@@ -29,28 +30,42 @@ public sealed class PokeApiService(IHttpClientFactory httpClientFactory)
                 stat => stat.GetProperty("base_stat").GetInt32());
         var sprites = root.GetProperty("sprites");
 
+        var captureRate = await cache.GetOrCreateAsync($"pokemon-capture-rate:{pokemonId}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24);
+            var speciesUrl = new Uri(root.GetProperty("species").GetProperty("url").GetString()!);
+            using var speciesResponse = await httpClientFactory.CreateClient("PokeApi")
+                .GetAsync(speciesUrl, cancellationToken);
+            if (!speciesResponse.IsSuccessStatusCode) throw new PokeApiUnavailableException();
+            using var speciesDocument = await JsonDocument.ParseAsync(
+                await speciesResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            return speciesDocument.RootElement.GetProperty("capture_rate").GetInt32();
+        });
+
         return new PokeApiPokemon(
             root.GetProperty("id").GetInt32(),
             root.GetProperty("name").GetString()!,
+            captureRate,
             stats["hp"], stats["attack"], stats["defense"], stats["speed"],
             types[0], types.Length > 1 ? types[1] : null,
             SpriteOrFallback(sprites, "front_default", pokemonId),
             SpriteOrFallback(sprites, "back_default", pokemonId));
     }
 
-    public async Task<IReadOnlyList<PokeApiItem>> GetPokeBallItems(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<PokeApiItem>> GetCaptureCatalogItems(CancellationToken cancellationToken)
     {
-        using var categoryResponse = await httpClientFactory.CreateClient("PokeApi")
-            .GetAsync("item-category/poke-balls", cancellationToken);
-        if (!categoryResponse.IsSuccessStatusCode)
-            throw new PokeApiUnavailableException();
-
-        using var categoryDocument = await JsonDocument.ParseAsync(
-            await categoryResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
-        var urls = categoryDocument.RootElement.GetProperty("items").EnumerateArray()
-            .Select(item => item.GetProperty("url").GetString()!)
-            .ToArray();
-        var items = new List<PokeApiItem>(urls.Length);
+        var urls = new List<string>();
+        foreach (var category in new[] { "poke-balls", "berries" })
+        {
+            using var categoryResponse = await httpClientFactory.CreateClient("PokeApi")
+                .GetAsync($"item-category/{category}", cancellationToken);
+            if (!categoryResponse.IsSuccessStatusCode) throw new PokeApiUnavailableException();
+            using var categoryDocument = await JsonDocument.ParseAsync(
+                await categoryResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            urls.AddRange(categoryDocument.RootElement.GetProperty("items").EnumerateArray()
+                .Select(item => item.GetProperty("url").GetString()!));
+        }
+        var items = new List<PokeApiItem>(urls.Count);
 
         // PokéAPI entrega el catálogo y el detalle por rutas distintas. Se limita
         // la concurrencia para no saturar el servicio externo.
@@ -98,7 +113,7 @@ public sealed class PokeApiService(IHttpClientFactory httpClientFactory)
 }
 
 public sealed record PokeApiPokemon(
-    int Id, string Nombre, int Vida, int Ataque, int Defensa, int Velocidad,
+    int Id, string Nombre, int CaptureRate, int Vida, int Ataque, int Defensa, int Velocidad,
     string TipoPrimario, string? TipoSecundario, string UrlFrontal, string UrlTrasera);
 
 public sealed record PokeApiItem(int Id, string Nombre, int Valor, string Descripcion, string UrlImagen);

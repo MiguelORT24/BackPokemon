@@ -8,9 +8,9 @@ namespace BackPokemon.Services;
 
 public sealed class PokeApiItemSyncService(ApplicationDbContext context, PokeApiService pokeApi)
 {
-    public async Task<SincronizacionItemsDto> SyncPokeBalls(CancellationToken cancellationToken)
+    public async Task<SincronizacionItemsDto> SyncCaptureItems(CancellationToken cancellationToken)
     {
-        var remoteItems = await pokeApi.GetPokeBallItems(cancellationToken);
+        var remoteItems = await pokeApi.GetCaptureCatalogItems(cancellationToken);
         var remoteIds = remoteItems.Select(item => item.Id).ToArray();
 
         await using var transaction = await context.Database.BeginTransactionAsync(
@@ -28,9 +28,7 @@ public sealed class PokeApiItemSyncService(ApplicationDbContext context, PokeApi
                 local.Nombre = remote.Nombre;
                 local.UrlImagen = remote.UrlImagen;
                 local.Descripcion = remote.Descripcion;
-                local.Efecto = "captura";
                 local.Valor = remote.Valor;
-                // La probabilidad es una regla del juego y se conserva si ya fue configurada.
                 updated++;
                 continue;
             }
@@ -41,24 +39,43 @@ public sealed class PokeApiItemSyncService(ApplicationDbContext context, PokeApi
                 Nombre = remote.Nombre,
                 UrlImagen = remote.UrlImagen,
                 Descripcion = remote.Descripcion,
-                Efecto = "captura",
+                Efecto = string.Empty,
                 Valor = remote.Valor,
-                Probabilidad = DefaultCaptureProbability(remote.Nombre)
+                Probabilidad = 0
             });
             added++;
         }
 
         await context.SaveChangesAsync(cancellationToken);
+        var syncedItems = await context.Items.Where(item => item.PokeApiItemId.HasValue
+                && remoteIds.Contains(item.PokeApiItemId.Value))
+            .ToDictionaryAsync(item => item.PokeApiItemId!.Value, cancellationToken);
+        foreach (var remote in remoteItems)
+            await EnsureGameRule(syncedItems[remote.Id], remote.Nombre, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new SincronizacionItemsDto(added, updated, remoteItems.Count);
     }
 
-    private static float DefaultCaptureProbability(string name) => name switch
+    private async Task EnsureGameRule(Item item, string name, CancellationToken cancellationToken)
     {
-        "master-ball" => 1f,
-        "ultra-ball" => .70f,
-        "great-ball" => .50f,
-        "quick-ball" or "dusk-ball" or "timer-ball" or "repeat-ball" or "net-ball" or "dive-ball" => .45f,
-        _ => .35f
-    };
+        var type = name == "razz-berry" ? "berry" :
+            name is "poke-ball" or "great-ball" or "ultra-ball" ? "ball" : null;
+        if (type is null) return;
+        var effect = context.EfectosItems.Local.FirstOrDefault(value => value.ItemId == item.Id)
+            ?? await context.EfectosItems.FirstOrDefaultAsync(value => value.ItemId == item.Id, cancellationToken);
+        if (effect is null)
+        {
+            effect = new EfectoItem { Item = item, Tipo = type };
+            context.EfectosItems.Add(effect);
+        }
+        effect.Tipo = type;
+        effect.MultiplicadorCaptura = type == "ball" ? name switch
+        {
+            "great-ball" => 1.5f,
+            "ultra-ball" => 2f,
+            _ => 1f
+        } : null;
+        effect.DuracionSegundos = type == "berry" ? 30 : null;
+    }
 }
