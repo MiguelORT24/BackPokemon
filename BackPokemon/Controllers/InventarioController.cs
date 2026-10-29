@@ -56,7 +56,6 @@ public class InventarioController : ControllerBase
         string userId,
         CancellationToken cancellationToken)
     {
-        if (userId != CurrentUserId) return NotFound();
         var inventory = await _context.ItemUsers
             .AsNoTracking()
             .Include(itemUser => itemUser.Item).ThenInclude(item => item.EfectoJuego)

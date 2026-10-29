@@ -156,6 +156,8 @@ public sealed class CapturasController(ApplicationDbContext context, PokeApiServ
                 IdPokemon = pokemon.Id,
                 IdUsuario = userId,
                 Nombre = pokemon.Nombre,
+                FechaObtencion = now,
+                Origen = OrigenPokemon.Captura,
                 EstadoDetalle = new PokemonEstado
                 {
                     VidaTotal = pokemon.Vida,

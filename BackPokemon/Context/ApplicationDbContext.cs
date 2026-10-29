@@ -190,17 +190,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Batalla>(entity =>
         {
             entity.HasKey(batalla => batalla.Id);
+            entity.HasIndex(batalla => new { batalla.IdUsuario, batalla.Fecha });
+            entity.HasOne(batalla => batalla.Usuario).WithMany()
+                .HasForeignKey(batalla => batalla.IdUsuario).OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(batalla => batalla.LlaveIdempotencia).IsUnique()
                 .HasFilter("[LlaveIdempotencia] IS NOT NULL");
 
             entity.HasOne(batalla => batalla.PokemonUserRetador)
                 .WithMany(pokemonUser => pokemonUser.BatallasComoRetador)
                 .HasForeignKey(batalla => batalla.PokemonUserR)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(batalla => batalla.PokemonUserGanadorNavigation)
-                .WithMany(pokemonUser => pokemonUser.BatallasGanadas)
-                .HasForeignKey(batalla => batalla.PokemonUserGanador)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

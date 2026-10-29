@@ -96,10 +96,24 @@ public class IntercambiosController(ApplicationDbContext context) : ControllerBa
             (p.Id == trade.PokemonUserR && p.IdUsuario == trade.UsuarioCreadorId) ||
             (p.Id == trade.PokemonUserD && p.IdUsuario == trade.UsuarioDestinatarioId), ct);
         if (valid != 2) return Conflict("Los Pokémon ya no están disponibles o cambiaron de propietario.");
+        var now = DateTime.UtcNow;
         trade.PokemonUserRemitente.IdUsuario = trade.UsuarioDestinatarioId;
+        trade.PokemonUserRemitente.FechaObtencion = now;
+        trade.PokemonUserRemitente.Origen = OrigenPokemon.Intercambio;
         trade.PokemonUserDestinatario!.IdUsuario = trade.UsuarioCreadorId;
+        trade.PokemonUserDestinatario.FechaObtencion = now;
+        trade.PokemonUserDestinatario.Origen = OrigenPokemon.Intercambio;
         trade.Estado = "confirmed";
-        trade.FechaConfirmacion = DateTime.UtcNow;
+        trade.FechaConfirmacion = now;
+        foreach (var (ownerId, pokemonId) in new[]
+        {
+            (trade.UsuarioDestinatarioId, trade.PokemonUserRemitente.IdPokemon),
+            (trade.UsuarioCreadorId, trade.PokemonUserDestinatario.IdPokemon)
+        })
+        {
+            if (!await context.Pokedex.AnyAsync(entry => entry.UserId == ownerId && entry.PokemonId == pokemonId, ct))
+                context.Pokedex.Add(new Pokedex { UserId = ownerId, PokemonId = pokemonId, Fecha = now });
+        }
         await context.SaveChangesAsync(ct);
         return Ok(ToDto(trade));
     }, ct);

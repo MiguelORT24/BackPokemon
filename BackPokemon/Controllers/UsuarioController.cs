@@ -55,4 +55,30 @@ public class UsuarioController(ApplicationDbContext context) : ControllerBase
                 .SetProperty(e => e.TurnosEstado, 0).SetProperty(e => e.DuracionEstado, 0), cancellationToken);
         return Ok(new { healed });
     }
+
+    [HttpPatch("pokemon/{id:int}/heal")]
+    public async Task<IActionResult> HealOne(int id, CancellationToken cancellationToken)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Unauthorized();
+
+        var pokemon = await context.PokemonUsers
+            .Where(p => p.Id == id && p.IdUsuario == userId)
+            .Select(p => new { p.Id, IsAlive = p.Crianza == null || p.Crianza.Vivo })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (pokemon is null) return NotFound(new { message = "El Pokémon no existe o no te pertenece." });
+        if (!pokemon.IsAlive) return Conflict(new { message = "No se puede curar un Pokémon fallecido." });
+
+        var healed = await context.PokemonEstados
+            .Where(e => e.IdPokemonUser == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.VidaActual, e => e.VidaTotal)
+                .SetProperty(e => e.Estado, EstadoPokemon.Sano)
+                .SetProperty(e => e.TurnosEstado, 0).SetProperty(e => e.DuracionEstado, 0), cancellationToken);
+
+        if (healed == 0)
+            return NotFound(new { message = "El Pokémon no tiene un estado de salud para curar." });
+
+        return Ok(new { id = pokemon.Id, healed = true });
+    }
 }
