@@ -37,10 +37,12 @@ public class PokemonCrianzaResumenDto
 
 public class PokemonEstadoDto
 {
+    public int IdPokemonUser { get; set; }
     public int VidaTotal { get; set; }
     public int VidaActual { get; set; }
     public EstadoPokemon Estado { get; set; }
     public string EstadoNombre { get; set; } = string.Empty;
+    public int IdPokeball { get; set; }
     public int AtaqueBase { get; set; }
     public int DefensaBase { get; set; }
     public int VelocidadBase { get; set; }

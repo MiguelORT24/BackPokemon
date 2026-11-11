@@ -51,10 +51,12 @@ public class PokemonUsersController(ApplicationDbContext context) : ControllerBa
                 Origen = value.Origen,
                 PokemonEstado = value.EstadoDetalle == null ? null : new PokemonEstadoDto
                 {
+                    IdPokemonUser = value.EstadoDetalle.IdPokemonUser,
                     VidaTotal = value.EstadoDetalle.VidaTotal,
                     VidaActual = value.EstadoDetalle.VidaActual,
                     Estado = value.EstadoDetalle.Estado,
                     EstadoNombre = value.EstadoDetalle.Estado.ToString(),
+                    IdPokeball = value.EstadoDetalle.IdPokeball,
                     AtaqueBase = value.EstadoDetalle.AtaqueBase,
                     DefensaBase = value.EstadoDetalle.DefensaBase,
                     VelocidadBase = value.EstadoDetalle.VelocidadBase,
@@ -74,6 +76,32 @@ public class PokemonUsersController(ApplicationDbContext context) : ControllerBa
                 }
             }).ToListAsync(cancellationToken);
         return Ok(pokemon);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<PokemonUserDto>> Create(CreatePokemonUserDto request,
+        CancellationToken cancellationToken)
+    {
+        if (CurrentUserId is null) return Unauthorized();
+        if (request.IdUsuario != CurrentUserId) return Forbid();
+
+        var usuarioExiste = await context.Users.AnyAsync(value => value.Id == CurrentUserId,
+            cancellationToken);
+        if (!usuarioExiste) return Unauthorized();
+
+        var pokemon = new PokemonUser
+        {
+            IdPokemon = request.IdPokemon,
+            IdUsuario = CurrentUserId,
+            Nombre = request.Nombre,
+            FechaObtencion = DateTime.UtcNow,
+            Origen = OrigenPokemon.Desconocido
+        };
+
+        context.PokemonUsers.Add(pokemon);
+        await context.SaveChangesAsync(cancellationToken);
+
+        return CreatedAtAction(nameof(GetById), new { id = pokemon.Id }, ToDto(pokemon));
     }
 
     [HttpPut("{id:int}")]

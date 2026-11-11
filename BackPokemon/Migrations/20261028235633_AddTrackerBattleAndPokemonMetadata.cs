@@ -14,8 +14,14 @@ namespace BackPokemon.Migrations
 
             migrationBuilder.AddColumn<string>(name: "IdUsuario", table: "Batallas", type: "nvarchar(450)", nullable: true);
             migrationBuilder.AddColumn<int>(name: "Resultado", table: "Batallas", type: "int", nullable: true);
+
+            // SQL Server no permite alterar una columna mientras un índice depende de ella.
+            migrationBuilder.DropIndex(name: "IX_Batallas_LlaveIdempotencia", table: "Batallas");
             migrationBuilder.AlterColumn<Guid>(name: "LlaveIdempotencia", table: "Batallas", type: "uniqueidentifier",
                 nullable: true, oldClrType: typeof(Guid), oldType: "uniqueidentifier");
+            migrationBuilder.CreateIndex(name: "IX_Batallas_LlaveIdempotencia", table: "Batallas",
+                column: "LlaveIdempotencia", unique: true, filter: "[LlaveIdempotencia] IS NOT NULL");
+
             migrationBuilder.DropIndex(name: "IX_Batallas_PokemonUserGanador", table: "Batallas");
             migrationBuilder.AlterColumn<int>(name: "PokemonUserGanador", table: "Batallas", type: "int",
                 nullable: true, oldClrType: typeof(int), oldType: "int");
@@ -67,10 +73,13 @@ WHERE NOT EXISTS
 
             migrationBuilder.Sql("UPDATE Batallas SET PokemonUserGanador = PokemonUserR WHERE PokemonUserGanador IS NULL; UPDATE Batallas SET LlaveIdempotencia = NEWID() WHERE LlaveIdempotencia IS NULL;");
             migrationBuilder.DropIndex(name: "IX_Batallas_PokemonUserGanador", table: "Batallas");
+            migrationBuilder.DropIndex(name: "IX_Batallas_LlaveIdempotencia", table: "Batallas");
             migrationBuilder.AlterColumn<int>(name: "PokemonUserGanador", table: "Batallas", type: "int", nullable: false,
                 oldClrType: typeof(int), oldType: "int", oldNullable: true);
             migrationBuilder.AlterColumn<Guid>(name: "LlaveIdempotencia", table: "Batallas", type: "uniqueidentifier", nullable: false,
                 defaultValue: Guid.Empty, oldClrType: typeof(Guid), oldType: "uniqueidentifier", oldNullable: true);
+            migrationBuilder.CreateIndex(name: "IX_Batallas_LlaveIdempotencia", table: "Batallas",
+                column: "LlaveIdempotencia", unique: true);
             migrationBuilder.CreateIndex(name: "IX_Batallas_PokemonUserGanador", table: "Batallas", column: "PokemonUserGanador");
             migrationBuilder.AddForeignKey(name: "FK_Batallas_PokemonUser_PokemonUserGanador", table: "Batallas",
                 column: "PokemonUserGanador", principalTable: "PokemonUser", principalColumn: "Id", onDelete: ReferentialAction.Restrict);
