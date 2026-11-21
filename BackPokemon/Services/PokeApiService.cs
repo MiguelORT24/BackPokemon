@@ -54,17 +54,31 @@ public sealed class PokeApiService(IHttpClientFactory httpClientFactory, IMemory
 
     public async Task<IReadOnlyList<PokeApiItem>> GetCaptureCatalogItems(CancellationToken cancellationToken)
     {
+        // PokéAPI no tiene categorías "poke-balls" ni "berries" (dan 404). Se parte de los
+        // bolsillos "pokeballs" y "berries", que listan sus categorías, y de ahí los objetos.
         var urls = new List<string>();
-        foreach (var category in new[] { "poke-balls", "berries" })
+        foreach (var pocket in new[] { "pokeballs", "berries" })
         {
-            using var categoryResponse = await httpClientFactory.CreateClient("PokeApi")
-                .GetAsync($"item-category/{category}", cancellationToken);
-            if (!categoryResponse.IsSuccessStatusCode) throw new PokeApiUnavailableException();
-            using var categoryDocument = await JsonDocument.ParseAsync(
-                await categoryResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
-            urls.AddRange(categoryDocument.RootElement.GetProperty("items").EnumerateArray()
-                .Select(item => item.GetProperty("url").GetString()!));
+            using var pocketResponse = await httpClientFactory.CreateClient("PokeApi")
+                .GetAsync($"item-pocket/{pocket}", cancellationToken);
+            if (!pocketResponse.IsSuccessStatusCode) throw new PokeApiUnavailableException();
+            using var pocketDocument = await JsonDocument.ParseAsync(
+                await pocketResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            var categoryUrls = pocketDocument.RootElement.GetProperty("categories").EnumerateArray()
+                .Select(category => category.GetProperty("url").GetString()!)
+                .ToArray();
+            foreach (var categoryUrl in categoryUrls)
+            {
+                using var categoryResponse = await httpClientFactory.CreateClient("PokeApi")
+                    .GetAsync(new Uri(categoryUrl), cancellationToken);
+                if (!categoryResponse.IsSuccessStatusCode) throw new PokeApiUnavailableException();
+                using var categoryDocument = await JsonDocument.ParseAsync(
+                    await categoryResponse.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+                urls.AddRange(categoryDocument.RootElement.GetProperty("items").EnumerateArray()
+                    .Select(item => item.GetProperty("url").GetString()!));
+            }
         }
+        urls = urls.Distinct().ToList();
         var items = new List<PokeApiItem>(urls.Count);
 
         // PokéAPI entrega el catálogo y el detalle por rutas distintas. Se limita
@@ -87,19 +101,41 @@ public sealed class PokeApiService(IHttpClientFactory httpClientFactory, IMemory
         using var document = await JsonDocument.ParseAsync(
             await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
         var root = document.RootElement;
-        var description = root.GetProperty("effect_entries").EnumerateArray()
-            .FirstOrDefault(entry => entry.GetProperty("language").GetProperty("name").GetString() == "en");
-        var effect = description.ValueKind == JsonValueKind.Undefined
-            ? "Poké Ball"
-            : description.GetProperty("short_effect").GetString() ?? "Poké Ball";
-        var sprites = root.GetProperty("sprites");
+
+        // Algunos objetos de PokéAPI no traen descripción, costo o imagen: se usan valores por defecto.
+        var effect = "Poké Ball";
+        if (root.TryGetProperty("effect_entries", out var entries) && entries.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var entry in entries.EnumerateArray())
+            {
+                if (entry.TryGetProperty("language", out var language)
+                    && language.TryGetProperty("name", out var languageName)
+                    && languageName.GetString() == "en"
+                    && entry.TryGetProperty("short_effect", out var shortEffect)
+                    && shortEffect.ValueKind == JsonValueKind.String)
+                {
+                    effect = shortEffect.GetString() ?? effect;
+                    break;
+                }
+            }
+        }
+
+        var cost = root.TryGetProperty("cost", out var costElement) && costElement.ValueKind == JsonValueKind.Number
+            ? costElement.GetInt32()
+            : 0;
+        var image = root.TryGetProperty("sprites", out var sprites)
+            && sprites.ValueKind == JsonValueKind.Object
+            && sprites.TryGetProperty("default", out var sprite)
+            && sprite.ValueKind == JsonValueKind.String
+                ? sprite.GetString() ?? string.Empty
+                : string.Empty;
 
         return new PokeApiItem(
             root.GetProperty("id").GetInt32(),
             root.GetProperty("name").GetString()!,
-            root.GetProperty("cost").GetInt32(),
-            effect,
-            sprites.TryGetProperty("default", out var sprite) ? sprite.GetString() ?? string.Empty : string.Empty);
+            cost,
+            effect.Length > 1000 ? effect[..1000] : effect,
+            image);
     }
 
     private static string SpriteOrFallback(JsonElement sprites, string property, int pokemonId)
